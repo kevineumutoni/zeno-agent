@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { fetchPasswordResetConfirm } from '../utils/fetchPasswordResetConfirm';
 
 export function useFetchPasswordResetConfirm() {
