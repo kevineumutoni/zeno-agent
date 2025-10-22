@@ -49,29 +49,65 @@ export default function ChatPage() {
       setShowGreeting(false);
     }
   }, [runs]);
+// Inside ChatPage.tsx, in the useEffect that processes conversations
+useEffect(() => {
+  const selectedConversation = conversations.find(
+    (conversation) => conversation.conversation_id === selectedConversationId
+  );
+  if (selectedConversation && selectedConversation.runs) {
+    const mappedRuns = selectedConversation.runs.map(run => {
+      // Transform backend input_files → frontend RunFile[]
+      const files: RunFile[] = run.input_files?.map(inputFile => {
+        const fileName = inputFile.file.split('/').pop() || 'file';
+        const isImage = inputFile.file_type.startsWith('image');
+        return {
+          file: new File([], fileName, {
+            type: isImage ? 'image/jpeg' : 'application/octet-stream',
+          }),
+          previewUrl: isImage ? inputFile.file : '',
+        };
+      }) || [];
 
-  useEffect(() => {
-    const selectedConversation = conversations.find(
-      (conversation) => conversation.conversation_id === selectedConversationId
-    );
-    if (selectedConversation && selectedConversation.runs) {
-      const mappedRuns = selectedConversation.runs.map(run => ({
+      return {
         id: String(run.id),
         user_input: run.user_input,
         final_output: run.final_output,
         output_artifacts: run.output_artifacts || [],
         status: run.status?.toLowerCase() || "completed",
         started_at: run.started_at,
-        files: [],
+        files, // ← Critical: preserve files
         _optimistic: false,
-      }));
-      setRuns(mappedRuns);
-      setShowGreeting(mappedRuns.length === 0);
-    } else {
-      setRuns([]);
-      setShowGreeting(true);
-    }
-  }, [selectedConversationId, conversations, setRuns]);
+      };
+    });
+    setRuns(mappedRuns);
+    setShowGreeting(mappedRuns.length === 0);
+  } else {
+    setRuns([]);
+    setShowGreeting(true);
+  }
+}, [selectedConversationId, conversations, setRuns]);
+  // useEffect(() => {
+  //   const selectedConversation = conversations.find(
+  //     (conversation) => conversation.conversation_id === selectedConversationId
+  //   );
+  //   if (selectedConversation && selectedConversation.runs) {
+  //     const mappedRuns = selectedConversation.runs.map(run => ({
+  //       id: String(run.id),
+  //       user_input: run.user_input,
+  //       final_output: run.final_output,
+  //       output_artifacts: run.output_artifacts || [],
+  //       status: run.status?.toLowerCase() || "completed",
+  //       started_at: run.started_at,
+  //       files: [],
+  //       _optimistic: false,
+  //     }));
+  //     setRuns(mappedRuns);
+  //     setShowGreeting(mappedRuns.length === 0);
+  //   } else {
+  //     setRuns([]);
+  //     setShowGreeting(true);
+  //   }
+  // }, [selectedConversationId, conversations, setRuns]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

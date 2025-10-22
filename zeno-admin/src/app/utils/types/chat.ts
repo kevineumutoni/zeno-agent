@@ -1,3 +1,4 @@
+import { InputFile } from "./runs";
 export interface OutputArtifact {
   id?: string | number;
   artifact_type: "text" | "chart" | "table";
@@ -55,6 +56,7 @@ export interface RunLike {
   user_input: string;
   status: string;
   final_output: string | null;
+  input_files?: InputFile[]; 
   output_artifacts: OutputArtifact[];
   started_at: string;
   _optimistic?: boolean;
