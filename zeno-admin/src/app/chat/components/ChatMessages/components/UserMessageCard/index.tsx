@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import { FaFilePdf, FaFileAlt } from 'react-icons/fa';
+import { FaFilePdf, FaFileAlt, FaFileExcel, FaFileWord, FaFileCsv } from 'react-icons/fa';
 import { UserMessageProps } from '../../../../../utils/types/chat';
 
 export default function UserMessage({ text, files }: UserMessageProps) {
@@ -17,7 +17,7 @@ export default function UserMessage({ text, files }: UserMessageProps) {
   <div className="flex flex-wrap gap-2 mt-2 justify-end">
     {files.map((item, idx) => {
       const fileName = item.file.name.toLowerCase();
-      let IconComponent = FaFileAlt;
+      let IconComponent: React.ElementType = FaFileAlt;
       let iconColor = "text-blue-500";
 
       if (item.file.type.startsWith("image/")) {
@@ -34,13 +34,17 @@ export default function UserMessage({ text, files }: UserMessageProps) {
         );
       }
 
-
       if (fileName.endsWith(".pdf")) {
         IconComponent = FaFilePdf;
         iconColor = "text-red-500";
-      } else if (fileName.endsWith(".csv") || fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
-        iconColor = "text-green-500";
+      } else if (fileName.endsWith(".csv")) {
+        IconComponent = FaFileCsv;
+        iconColor = "text-green-600";
+      } else if (fileName.endsWith(".xlsx") || fileName.endsWith(".xls")) {
+        IconComponent = FaFileExcel;
+        iconColor = "text-green-700";
       } else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
+        IconComponent = FaFileWord;
         iconColor = "text-blue-600";
       } else if (fileName.endsWith(".txt")) {
         iconColor = "text-gray-700";

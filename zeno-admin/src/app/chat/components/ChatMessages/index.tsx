@@ -158,15 +158,27 @@ export default function ChatMessages({
                 }
               />
 
-              {run.status === "pending" && <AgentMessage loading />}
+              {(run.status === "pending" || run.status === "running") && (
+                 <AgentMessage
+                    loading
+                    progressMessages={
+                      Array.isArray(run.output_artifacts)
+                        ? run.output_artifacts
+                            .filter(a => a.artifact_type === "progress")
+                            .map(a => (a.data as { message?: string })?.message || "...")
+                        : []
+                    }
+                  />
+              )}
 
               {run.status === "completed" && (
                 <>
                   {run.final_output && <AgentMessage text={run.final_output} />}
 
                   {Array.isArray(run.output_artifacts) &&
-                    run.output_artifacts.length > 0 &&
-                    run.output_artifacts.map((artifact, idx) => (
+                    run.output_artifacts
+                      .filter(a => a.artifact_type !== "progress") 
+                      .map((artifact, idx) => (
                       <ChatArtifactRenderer
                         key={artifact.id ?? idx}
                         artifactType={artifact.artifact_type}
@@ -177,7 +189,7 @@ export default function ChatMessages({
 
                   {!run.final_output &&
                     (!Array.isArray(run.output_artifacts) ||
-                      run.output_artifacts.length === 0) && (
+                      run.output_artifacts.filter(a => a.artifact_type !== "progress").length === 0) && (
                       <AgentMessage text="No response generated." />
                     )}
 

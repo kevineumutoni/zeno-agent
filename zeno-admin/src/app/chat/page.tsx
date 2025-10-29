@@ -3,12 +3,24 @@ import { useEffect, useRef, useState } from "react";
 import Sidebar from "../sharedComponents/Sidebar";
 import ChatMessages from "./components/ChatMessages";
 import ChatInput from "../sharedComponents/ChatInput";
-import { RunFile, RunLike} from "../utils/types/chat"; 
-import { Conversation } from "../utils/types/runs";
+import { RunFile, RunLike, Run } from "../utils/types/chat"; 
+import { Conversation, InputFile } from "../utils/types/runs";
 import { useConversationsWithRuns } from "../hooks/useConversationWithRuns";
 import { useRuns } from "../hooks/useFetchPostRuns";
 import { Hand } from "lucide-react";
 import { useRouter } from 'next/navigation';
+
+const getMimeType = (fileType: string): string => {
+  switch (fileType) {
+    case 'pdf': return 'application/pdf';
+    case 'image': return 'image/jpeg';
+    case 'csv': return 'text/csv';
+    case 'excel': return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    case 'word': return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    case 'text': return 'text/plain';
+    default: return 'application/octet-stream';
+  }
+};
 
 export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -49,65 +61,55 @@ export default function ChatPage() {
       setShowGreeting(false);
     }
   }, [runs]);
-// Inside ChatPage.tsx, in the useEffect that processes conversations
-useEffect(() => {
-  const selectedConversation = conversations.find(
-    (conversation) => conversation.conversation_id === selectedConversationId
-  );
-  if (selectedConversation && selectedConversation.runs) {
-    const mappedRuns = selectedConversation.runs.map(run => {
-      // Transform backend input_files → frontend RunFile[]
-      const files: RunFile[] = run.input_files?.map(inputFile => {
-        const fileName = inputFile.file.split('/').pop() || 'file';
-        const isImage = inputFile.file_type.startsWith('image');
-        return {
-          file: new File([], fileName, {
-            type: isImage ? 'image/jpeg' : 'application/octet-stream',
-          }),
-          previewUrl: isImage ? inputFile.file : '',
-        };
-      }) || [];
+  
+  useEffect(() => {
+    if (selectedConversationId === null) {
+      setRuns([]);
+      setShowGreeting(true);
+      return;
+    }
 
-      return {
-        id: String(run.id),
-        user_input: run.user_input,
-        final_output: run.final_output,
-        output_artifacts: run.output_artifacts || [],
-        status: run.status?.toLowerCase() || "completed",
-        started_at: run.started_at,
-        files, // ← Critical: preserve files
-        _optimistic: false,
-      };
-    });
-    setRuns(mappedRuns);
-    setShowGreeting(mappedRuns.length === 0);
-  } else {
-    setRuns([]);
-    setShowGreeting(true);
-  }
-}, [selectedConversationId, conversations, setRuns]);
-  // useEffect(() => {
-  //   const selectedConversation = conversations.find(
-  //     (conversation) => conversation.conversation_id === selectedConversationId
-  //   );
-  //   if (selectedConversation && selectedConversation.runs) {
-  //     const mappedRuns = selectedConversation.runs.map(run => ({
-  //       id: String(run.id),
-  //       user_input: run.user_input,
-  //       final_output: run.final_output,
-  //       output_artifacts: run.output_artifacts || [],
-  //       status: run.status?.toLowerCase() || "completed",
-  //       started_at: run.started_at,
-  //       files: [],
-  //       _optimistic: false,
-  //     }));
-  //     setRuns(mappedRuns);
-  //     setShowGreeting(mappedRuns.length === 0);
-  //   } else {
-  //     setRuns([]);
-  //     setShowGreeting(true);
-  //   }
-  // }, [selectedConversationId, conversations, setRuns]);
+    const selectedConversation = conversations.find(
+      (conversation) => conversation.conversation_id === selectedConversationId
+    );
+
+    if (selectedConversation && selectedConversation.runs) {
+      const mappedRuns = selectedConversation.runs
+        .sort((a, b) => new Date(a.started_at).getTime() - new Date(b.started_at).getTime())
+        .map(run => {
+          const files: RunFile[] = (run as Run & { input_files?: InputFile[] }).input_files?.map(inputFile => {
+            const fileName = inputFile.file.split('/').pop() || 'file';
+            
+            const mockFile = new File([], fileName, {
+              type: getMimeType(inputFile.file_type) || 'application/octet-stream',
+            });
+
+            return {
+              file: mockFile,
+              previewUrl: inputFile.file, 
+            };
+          }) || [];
+
+          return {
+            id: String(run.id),
+            user_input: run.user_input,
+            final_output: run.final_output,
+            output_artifacts: run.output_artifacts || [],
+            status: run.status?.toLowerCase() || "completed",
+            started_at: run.started_at,
+            files: files,
+            _optimistic: false,
+            error: run.status?.toLowerCase() === 'failed' && run.final_output ? run.final_output : undefined,
+          };
+        });
+      
+      setRuns(mappedRuns);
+      setShowGreeting(mappedRuns.length === 0);
+    } else {
+      setRuns([]);
+      setShowGreeting(true);
+    }
+  }, [selectedConversationId, conversations, setRuns]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -161,6 +163,8 @@ useEffect(() => {
 
     setConversations((prev) => [data!, ...prev]);
     setSelectedConversationId(data!.conversation_id);
+    setRuns([]); 
+    setShowGreeting(true);
   }
 
   async function handleRenameConversation(id: number, title: string) {
@@ -239,6 +243,7 @@ useEffect(() => {
         finalConversationId = String(convData.conversation_id);
         setConversations((prev) => [convData, ...prev]);
         setSelectedConversationId(convData.conversation_id);
+        setRuns([]);
       }
 
       setShowGreeting(false);
