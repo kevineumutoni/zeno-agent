@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Image from 'next/image';
 
@@ -47,7 +46,7 @@ export default function AgentMessage({ text, loading, progressMessages = [] }: A
           height={24}
         />
       </div>
-      <div className="bg-[#131F36] text-white p-3 rounded-2xl rounded-bl-none max-w-[80%] whitespace-pre-wrap">
+      <div className="bg-[#131F36] text-white p-3 rounded-2xl rounded-bl-none max-w-[80%] whitespace-pre-wrap text-[25px]">
         {text}
       </div>
     </div>
